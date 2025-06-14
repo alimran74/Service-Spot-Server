@@ -32,13 +32,23 @@ async function run() {
 
     const serviceCollection = client.db('serviceSpot').collection('services')
 
-    // services api 
+    // services api -----------
 
-    // post api 
+    // post api --
       app.post('/services', async (req, res) => {
       const service = req.body;
       const result = await serviceCollection.insertOne(service);
       res.send(result);
+    });
+
+    // get api --
+    app.get('/services',async(req,res) =>{
+      try{
+        const services = await serviceCollection.find().toArray();
+        res.send(services);
+      }catch(error){
+        res.status(500).send({error:'Faild to fetch services'});
+      }
     });
 
     // Send a ping to confirm a successful connection
