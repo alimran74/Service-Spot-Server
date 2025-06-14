@@ -41,15 +41,39 @@ async function run() {
       res.send(result);
     });
 
-    // get api --
-    app.get('/services',async(req,res) =>{
-      try{
-        const services = await serviceCollection.find().toArray();
-        res.send(services);
-      }catch(error){
-        res.status(500).send({error:'Faild to fetch services'});
-      }
-    });
+    // get api for featured services --
+  app.get('/services/featured', async (req, res) => {
+  try {
+    const services = await serviceCollection.find().limit(6).toArray();
+    res.send(services);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to fetch featured services' });
+  }
+});
+
+
+    // get api for all services
+
+  app.get('/services', async (req, res) => {
+  try {
+    const services = await serviceCollection.find().toArray();
+    res.send(services);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to fetch all services' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
