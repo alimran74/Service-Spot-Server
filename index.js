@@ -45,7 +45,7 @@ async function run() {
     });
 
     // get api for featured services --
-  app.get('/services/featured', async (req, res) => {
+app.get('/services/featured', async (req, res) => {
   try {
     const services = await serviceCollection.find().limit(6).toArray();
     res.send(services);
@@ -55,16 +55,17 @@ async function run() {
 });
 
 
+
     // get api for all services
 
-  app.get('/services', async (req, res) => {
-  try {
-    const services = await serviceCollection.find().toArray();
-    res.send(services);
-  } catch (error) {
-    res.status(500).send({ error: 'Failed to fetch all services' });
-  }
-});
+//   app.get('/services', async (req, res) => {
+//   try {
+//     const services = await serviceCollection.find().toArray();
+//     res.send(services);
+//   } catch (error) {
+//     res.status(500).send({ error: 'Failed to fetch all services' });
+//   }
+// });
 
 
 // get api for each card
@@ -75,6 +76,57 @@ app.get('/services/:id', async (req, res) => {
   const service = await serviceCollection.findOne(query);
   res.send(service);
 });
+
+
+
+// api for all services
+app.get("/services", async (req, res) => {
+  try {
+    const email = req.query.email;
+    const query = email ? { userEmail: email } : {};
+    const services = await serviceCollection.find(query).toArray();
+    res.send(services);
+  } catch (error) {
+    res.status(500).send({ message: "Failed to fetch services." });
+  }
+});
+
+
+// api for update operation
+
+app.put('/services/:id', async (req, res) => {
+  const id = req.params.id;
+  const updatedService = { ...req.body };
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).send({ message: 'Invalid service ID' });
+  }
+
+  // Remove _id from the update data to avoid error
+  delete updatedService._id;
+
+  try {
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = {
+      $set: updatedService,
+    };
+
+    const result = await serviceCollection.updateOne(filter, updateDoc);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: 'Service not found' });
+    }
+
+    res.send({ message: 'Service updated successfully', result });
+  } catch (error) {
+    console.error('PUT /services/:id error:', error);
+    res.status(500).send({ message: 'Failed to update service', error: error.message });
+  }
+});
+
+
+
+
 
 
 
