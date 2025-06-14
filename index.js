@@ -2,7 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 
 // middleware
@@ -30,7 +30,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const serviceCollection = client.db('serviceSpot').collection('services')
+    const serviceCollection = client.db('serviceSpot').collection('services');
+
+    const reviewCollection = client.db('serviceSpot').collection('reviews');
+
 
     // services api -----------
 
@@ -64,6 +67,14 @@ async function run() {
 });
 
 
+// get api for each card
+
+app.get('/services/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const service = await serviceCollection.findOne(query);
+  res.send(service);
+});
 
 
 
@@ -71,7 +82,21 @@ async function run() {
 
 
 
+// review api --------------------
 
+
+// post review
+app.post('/reviews', async (req, res) => {
+  try {
+    const review = req.body;
+    const result = await reviewCollection.insertOne(review);
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to post review' });
+  }
+});
+
+// get review
 
 
 
