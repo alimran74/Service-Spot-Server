@@ -98,6 +98,15 @@ app.post('/reviews', async (req, res) => {
 
 // get review
 
+   app.get('/reviews/:serviceId', async (req, res) => {
+      const serviceId = req.params.serviceId;
+      try {
+        const reviews = await reviewCollection.find({ serviceId: serviceId }).toArray();
+        res.send(reviews);
+      } catch (error) {
+        res.status(500).send({ error: 'Failed to fetch reviews' });
+      }
+    });
 
 
     // Send a ping to confirm a successful connection
