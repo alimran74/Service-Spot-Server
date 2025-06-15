@@ -60,15 +60,35 @@ async function run() {
 
     // api for all services
     app.get("/services", async (req, res) => {
-      try {
-        const email = req.query.email;
-        const query = email ? { userEmail: email } : {};
-        const services = await serviceCollection.find(query).toArray();
-        res.send(services);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to fetch services." });
-      }
-    });
+  try {
+    const search = req.query.search || "";
+    const email = req.query.email;
+
+    let andConditions = [];
+
+    if (search) {
+      andConditions.push({
+        $or: [
+          { title: { $regex: search, $options: "i" } },
+          { category: { $regex: search, $options: "i" } },
+          { company: { $regex: search, $options: "i" } },
+        ],
+      });
+    }
+
+    if (email) {
+      andConditions.push({ userEmail: email });
+    }
+
+    const finalQuery = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    const services = await serviceCollection.find(finalQuery).toArray();
+    res.send(services);
+  } catch (error) {
+    res.status(500).send({ message: "Failed to fetch services." });
+  }
+});
+
 
     // api for update operation
 
@@ -162,7 +182,8 @@ async function run() {
 
       try {
         const userReviews = await reviewCollection
-          .find({ userEmail: userEmail })
+          .find({ email: userEmail })
+
           .sort({ createdAt: -1 })
           .toArray();
         res.send(userReviews);
