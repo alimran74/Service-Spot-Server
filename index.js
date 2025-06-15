@@ -195,7 +195,19 @@ async function run() {
     });
 
 
-    
+    // delete api for my review
+
+    app.delete('/reviews/:id', async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const result = await reviewCollection.deleteOne({ _id: new ObjectId(id) });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: 'Failed to delete review' });
+  }
+});
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
