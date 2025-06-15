@@ -56,16 +56,6 @@ app.get('/services/featured', async (req, res) => {
 
 
 
-    // get api for all services
-
-//   app.get('/services', async (req, res) => {
-//   try {
-//     const services = await serviceCollection.find().toArray();
-//     res.send(services);
-//   } catch (error) {
-//     res.status(500).send({ error: 'Failed to fetch all services' });
-//   }
-// });
 
 
 // get api for each card
@@ -102,7 +92,7 @@ app.put('/services/:id', async (req, res) => {
     return res.status(400).send({ message: 'Invalid service ID' });
   }
 
-  // Remove _id from the update data to avoid error
+  
   delete updatedService._id;
 
   try {
@@ -121,6 +111,25 @@ app.put('/services/:id', async (req, res) => {
   } catch (error) {
     console.error('PUT /services/:id error:', error);
     res.status(500).send({ message: 'Failed to update service', error: error.message });
+  }
+});
+
+// api for delete operation
+
+app.delete("/services/:id", async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const result = await serviceCollection.deleteOne({ _id: new ObjectId(id) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send({ error: "No service found to delete" });
+    }
+
+    res.send(result);
+  } catch (error) {
+    console.error("Delete failed:", error);
+    res.status(500).send({ error: "Internal server error during delete" });
   }
 });
 
