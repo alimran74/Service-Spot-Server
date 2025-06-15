@@ -58,11 +58,32 @@ async function run() {
       res.send(service);
     });
 
+
+    // get api for filter data
+app.get("/categories", async (req, res) => {
+  try {
+    console.log("GET /categories endpoint hit");
+    const categories = await serviceCollection.aggregate([
+  { $group: { _id: "$category" } },
+  { $project: { category: "$_id", _id: 0 } }
+]).toArray();
+
+res.send(categories.map(cat => cat.category));
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).send({ error: "Failed to fetch categories" });
+  }
+});
+
+
+
+
     // api for all services
     app.get("/services", async (req, res) => {
   try {
     const search = req.query.search || "";
     const email = req.query.email;
+    const category = req.query.category;
 
     let andConditions = [];
 
@@ -80,6 +101,10 @@ async function run() {
       andConditions.push({ userEmail: email });
     }
 
+    if (category && category !== "All") {
+      andConditions.push({ category });
+    }
+
     const finalQuery = andConditions.length > 0 ? { $and: andConditions } : {};
 
     const services = await serviceCollection.find(finalQuery).toArray();
@@ -88,6 +113,7 @@ async function run() {
     res.status(500).send({ message: "Failed to fetch services." });
   }
 });
+
 
 
     // api for update operation
