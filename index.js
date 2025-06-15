@@ -1,18 +1,14 @@
-const express = require('express')
-const cors = require('cors')
+const express = require("express");
+const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-require('dotenv').config()
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
 
 // middleware
 
 app.use(cors());
 app.use(express.json());
-
-
-
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@imran.chugnik.mongodb.net/?retryWrites=true&w=majority&appName=Imran`;
 
@@ -22,7 +18,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -30,163 +26,193 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const serviceCollection = client.db('serviceSpot').collection('services');
+    const serviceCollection = client.db("serviceSpot").collection("services");
 
-    const reviewCollection = client.db('serviceSpot').collection('reviews');
-
+    const reviewCollection = client.db("serviceSpot").collection("reviews");
 
     // services api -----------
 
     // post api --
-      app.post('/services', async (req, res) => {
+    app.post("/services", async (req, res) => {
       const service = req.body;
       const result = await serviceCollection.insertOne(service);
       res.send(result);
     });
 
     // get api for featured services --
-app.get('/services/featured', async (req, res) => {
-  try {
-    const services = await serviceCollection.find().limit(6).toArray();
-    res.send(services);
-  } catch (error) {
-    res.status(500).send({ error: 'Failed to fetch featured services' });
-  }
-});
+    app.get("/services/featured", async (req, res) => {
+      try {
+        const services = await serviceCollection.find().limit(6).toArray();
+        res.send(services);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch featured services" });
+      }
+    });
 
+    // get api for each card
 
+    app.get("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const service = await serviceCollection.findOne(query);
+      res.send(service);
+    });
 
+    // api for all services
+    app.get("/services", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = email ? { userEmail: email } : {};
+        const services = await serviceCollection.find(query).toArray();
+        res.send(services);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to fetch services." });
+      }
+    });
 
+    // api for update operation
 
-// get api for each card
+    app.put("/services/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedService = { ...req.body };
 
-app.get('/services/:id', async (req, res) => {
-  const id = req.params.id;
-  const query = { _id: new ObjectId(id) };
-  const service = await serviceCollection.findOne(query);
-  res.send(service);
-});
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid service ID" });
+      }
 
+      delete updatedService._id;
 
+      try {
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: updatedService,
+        };
 
-// api for all services
-app.get("/services", async (req, res) => {
-  try {
-    const email = req.query.email;
-    const query = email ? { userEmail: email } : {};
-    const services = await serviceCollection.find(query).toArray();
-    res.send(services);
-  } catch (error) {
-    res.status(500).send({ message: "Failed to fetch services." });
-  }
-});
+        const result = await serviceCollection.updateOne(filter, updateDoc);
 
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Service not found" });
+        }
 
-// api for update operation
+        res.send({ message: "Service updated successfully", result });
+      } catch (error) {
+        console.error("PUT /services/:id error:", error);
+        res
+          .status(500)
+          .send({ message: "Failed to update service", error: error.message });
+      }
+    });
 
-app.put('/services/:id', async (req, res) => {
-  const id = req.params.id;
-  const updatedService = { ...req.body };
+    // api for delete operation
 
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).send({ message: 'Invalid service ID' });
-  }
+    app.delete("/services/:id", async (req, res) => {
+      const id = req.params.id;
 
-  
-  delete updatedService._id;
+      try {
+        const result = await serviceCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
 
-  try {
-    const filter = { _id: new ObjectId(id) };
-    const updateDoc = {
-      $set: updatedService,
-    };
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ error: "No service found to delete" });
+        }
 
-    const result = await serviceCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Delete failed:", error);
+        res.status(500).send({ error: "Internal server error during delete" });
+      }
+    });
 
-    if (result.matchedCount === 0) {
-      return res.status(404).send({ message: 'Service not found' });
-    }
+    // review api --------------------
 
-    res.send({ message: 'Service updated successfully', result });
-  } catch (error) {
-    console.error('PUT /services/:id error:', error);
-    res.status(500).send({ message: 'Failed to update service', error: error.message });
-  }
-});
+    // post review
+    app.post("/reviews", async (req, res) => {
+      try {
+        const review = req.body;
+        const result = await reviewCollection.insertOne(review);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to post review" });
+      }
+    });
 
-// api for delete operation
+    // get review
 
-app.delete("/services/:id", async (req, res) => {
-  const id = req.params.id;
-
-  try {
-    const result = await serviceCollection.deleteOne({ _id: new ObjectId(id) });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).send({ error: "No service found to delete" });
-    }
-
-    res.send(result);
-  } catch (error) {
-    console.error("Delete failed:", error);
-    res.status(500).send({ error: "Internal server error during delete" });
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-// review api --------------------
-
-
-// post review
-app.post('/reviews', async (req, res) => {
-  try {
-    const review = req.body;
-    const result = await reviewCollection.insertOne(review);
-    res.send(result);
-  } catch (error) {
-    res.status(500).send({ error: 'Failed to post review' });
-  }
-});
-
-// get review
-
-   app.get('/reviews/:serviceId', async (req, res) => {
+    app.get("/reviews/:serviceId", async (req, res) => {
       const serviceId = req.params.serviceId;
       try {
-        const reviews = await reviewCollection.find({ serviceId: serviceId }).toArray();
+        const reviews = await reviewCollection
+          .find({ serviceId: serviceId })
+          .toArray();
         res.send(reviews);
       } catch (error) {
-        res.status(500).send({ error: 'Failed to fetch reviews' });
+        res.status(500).send({ error: "Failed to fetch reviews" });
+      }
+    });
+
+    // get review for my review
+
+    app.get("/reviews", async (req, res) => {
+      const userEmail = req.query.email;
+
+      if (!userEmail) {
+        return res.status(400).send({ error: "Email is required" });
+      }
+
+      try {
+        const userReviews = await reviewCollection
+          .find({ userEmail: userEmail })
+          .sort({ createdAt: -1 })
+          .toArray();
+        res.send(userReviews);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch user reviews" });
+      }
+    });
+
+    // put review for update
+
+    app.put("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const { text, rating } = req.body;
+
+      try {
+        const result = await reviewCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: {
+              text,
+              rating,
+            },
+          }
+        );
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to update review" });
       }
     });
 
 
+    
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
-    
   }
 }
 run().catch(console.dir);
 
+app.get("/", (req, res) => {
+  res.send("Service Spot Cooking");
+});
 
-
-app.get('/',(req, res)=>{
-    res.send('Service Spot Cooking')
-})
-
-app.listen(port,() =>{
-    console.log(`Service Spot Running on port ${port} `)
-})
+app.listen(port, () => {
+  console.log(`Service Spot Running on port ${port} `);
+});
